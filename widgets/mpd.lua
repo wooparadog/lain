@@ -14,7 +14,6 @@ local awful        = require("awful")
 local naughty      = require("naughty")
 local wibox        = require("wibox")
 
-local io           = { popen    = io.popen }
 local os           = { execute  = os.execute,
                        getenv   = os.getenv }
 local string       = { format   = string.format,
@@ -36,13 +35,13 @@ local function worker(args)
     local cover_size  = args.cover_size or 100
     local default_art = args.default_art or ""
     local settings    = args.settings or function() end
+    local init        = args.init or function() end
 
     local mpdcover = helpers.scripts_dir .. "mpdcover"
+    local mpdctl = helpers.scripts_dir .. "mpdctl"
 
     function call_mpd(command)
-        local cmd  = "echo 'password " .. command .. "\nstatus\n".. command .. "\nclose'"
-        local f = io.popen(cmd .. " | curl --connect-timeout 1 -fsm 3 " .. "telnet://" .. host .. ":" .. port)
-        return f:lines()
+        return assert(io.popen(mpdctl .. ' "' .. password .. '" "' .. command .. '" "' .. host .. ':' .. port .. '"')):lines()
     end
     
 
@@ -56,7 +55,25 @@ local function worker(args)
 
     helpers.set_map("current mpd track", nil)
 
-    function mpd.update()
+
+    function mpd_popup()
+        mpd_hide()
+        mpd.notification = naughty.notify({
+            preset = mpd_notification_preset,
+            icon = "/tmp/mpdcover.png",
+            replaces_id = mpd.id,
+            screen = client.focus and client.focus.screen or 1
+        })
+    end
+
+    function mpd_hide()
+        if mpd.notification ~= nil then
+            naughty.destroy(mpd.notification)
+            mpd.notification = nil
+        end
+    end
+
+    function mpd_update()
         mpd_now = {
             state  = "N/A",
             file   = "N/A",
@@ -92,7 +109,7 @@ local function worker(args)
                 os.execute(string.format("%s %q %q %d %q", mpdcover, music_dir,
                            mpd_now.file, cover_size, default_art))
 
-                mpd.popup()
+                mpd_popup()
             end
         elseif mpd_now.state ~= "pause"
         then
@@ -100,40 +117,11 @@ local function worker(args)
         end
     end
 
+    widget = mpd.widget
+    init()
+    helpers.newtimer("mpd", timeout, mpd_update)
 
-    function mpd.popup()
-        mpd.notification = naughty.notify({
-            preset = mpd_notification_preset,
-            icon = "/tmp/mpdcover.png",
-            replaces_id = mpd.id,
-            screen = client.focus and client.focus.screen or 1
-        })
-    end
-
-    function mpd.hide()
-        if mpd.notification ~= nil then
-            naughty.destroy(mpd.notification)
-            mpd.notification = nil
-        end
-    end
-
-    mpd.widget:connect_signal("mouse::enter", function () mpd.popup() end)
-    mpd.widget:connect_signal("mouse::leave", function () mpd.hide() end)
-
-    mpd.widget:buttons(awful.util.table.join (
-        awful.button ({}, 1, function()
-            call_mpd("next")
-            mpd.update()
-        end),
-        awful.button ({}, 3, function()
-            call_mpd("previous")
-            mpd.update()
-        end)
-    ))
-
-    helpers.newtimer("mpd", timeout, mpd.update)
-
-    return setmetatable(mpd, { __index = mpd.widget })
+    return setmetatable(mpd, { __index = mpd.widget, mpd_popup = mpd_popup, mpd_hide = mpd_hide, call_mpd = call_mpd })
 end
 
 return setmetatable(mpd, { __call = function(_, ...) return worker(...) end })

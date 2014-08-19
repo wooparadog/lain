@@ -26,8 +26,7 @@ local function worker(args)
     local timeout  = args.timeout or 5
     local channel  = args.channel or "Master"
     local settings = args.settings or function() end
-    local terminal = terminal or "xterm"
-    local mixer    = terminal .. " -e alsamixer -T alsamixer"
+    local mixer    = "xfce4-terminal -e alsamixer -T alsamixer"
 
     alsa.widget = wibox.widget.textbox('')
 
