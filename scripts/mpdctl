@@ -1,0 +1,10 @@
+password=$1
+cmd=$2
+uri=$3
+
+echo "password $password
+status
+$cmd
+close" | curl --connect-timeout 1 -fsm 3 telnet://$uri
+
+exit 0
