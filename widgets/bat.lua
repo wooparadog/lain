@@ -130,14 +130,14 @@ local function worker(args)
                 bat.id = naughty.notify({
                     preset = bat_notification_critical_preset,
                     replaces_id = bat.id,
-                    screen = client.focus and client.focus.screen or 1
+                    screen = mouse and mouse.screen or 1
                 }).id
             elseif nperc <= 15
             then
                 bat.id = naughty.notify({
                     preset = bat_notification_low_preset,
                     replaces_id = bat.id,
-                    screen = client.focus and client.focus.screen or 1
+                    screen = mouse and mouse.screen or 1
                 }).id
             end
         end

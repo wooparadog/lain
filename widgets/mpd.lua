@@ -62,7 +62,7 @@ local function worker(args)
             preset = mpd_notification_preset,
             icon = "/tmp/mpdcover.png",
             replaces_id = mpd.id,
-            screen = client.focus and client.focus.screen or 1
+            screen = mouse and mouse.screen or 1
         })
     end
 
